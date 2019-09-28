@@ -1,0 +1,693 @@
+Entities.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Text.RegularExpressions;
+
+
+namespace Employee_Entities
+{
+    public class Entities
+    {
+        //Declaring all the fields  of Employee
+        private int EID;
+        public int EmpID
+        {
+            get { return EID; }
+            set { EID = value; }
+        }
+
+        private string EName;
+
+        public string EmpName
+        {
+            get { return EName; }
+            set { EName = value; }
+        }
+
+        private string EAddress;
+
+        public string EmpAddress
+        {
+            get { return EAddress; }
+            set { EAddress = value; }
+        }
+
+        private string ECity;
+
+        public string EmpCity
+        {
+            get { return ECity; }
+            set { ECity = value; }
+        }
+
+        private string EDepartment;
+
+        public string EmpDepartment
+        {
+            get { return EDepartment; }
+            set { EDepartment = value; }
+        }
+
+        private int ESalary;
+
+        public int EmpSalary
+        {
+            get { return ESalary; }
+            set { ESalary = value; }
+        }
+
+        private long ENO;
+        public long EmpNum
+        {
+            get { return ENO; }
+            set
+            {
+                //Regular Expressions to check Mobile Number
+                String pattern = @"^[6-9]{1}[0-9]{9}$";
+                if (Regex.Match(value.ToString(), pattern).Success)
+                    ENO = value;
+                else
+                {
+                    Console.WriteLine("Invalid Entry");
+                    Console.ReadKey();
+                }
+            }
+        }
+        private String EEMail;
+        public String EmpEMail
+        {
+            get { return EEMail; }
+            set
+            {
+                //Regular Expressions to Check Email ID
+                String pattern = @"^[a-z0-9][-a-z0-9._]+@([-a-z0-9]+.)+[a-z]{2,5}$";
+                if (Regex.Match(value, pattern).Success)
+                {
+                    EEMail = value;
+                }
+                else
+                {
+                    Console.WriteLine("Invalid Entry");
+                    Console.ReadKey();
+                }
+            }
+        }
+        //Declaration of Variables
+        public Entities()
+        {
+            EID = 0;
+            EName = string.Empty;
+            EAddress = string.Empty;
+            ECity = string.Empty;
+            EDepartment = string.Empty;
+            ESalary = 0;
+            ENO = 0;
+            EEMail = string.Empty;
+        }
+    }
+}
+
+=========================================================================================================
+
+Exceptions
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Employee_Exceptions
+{
+    public class Exceptions:ApplicationException
+    {
+        public Exceptions()
+            : base()
+        {
+        }
+        public Exceptions(string message)
+            : base(message)
+        {
+        }
+        //Added Exception to check String Format
+        public Exceptions(string message,int a =1)
+            : base(String.Format("Invalid Entry: Only String Expected", message))
+        {
+        }
+        public Exceptions(string message, Exception innerException)
+            : base(message, innerException)
+        {
+        }
+    }
+}
+
+=====================================================================================================
+
+DAL.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Employee_Entities;
+using Employee_Exceptions;
+
+namespace Data_Access_Layer
+{
+    public class DAL
+    {
+        //Initializing the List of Employee Details
+        public static List<Entities> EmpList = new List<Entities>();
+        //Method to Add
+        public bool Add(Entities newEmp)
+        {
+            bool EmpAdded = false;
+            try
+            {
+                EmpList.Add(newEmp);
+                EmpAdded = true;
+            }
+            catch (SystemException ex)
+            {
+                throw new Exceptions(ex.Message);
+            }
+            return EmpAdded;
+
+        }
+        //Method to Get All Details
+        public List<Entities> GetAll()
+        {
+            return EmpList;
+        }
+        //Method to Search
+        public Entities Search(int search)
+        {
+            Entities searchEmp = null;
+            try
+            {
+                searchEmp = EmpList.Find(emp => emp.EmpID == search);
+            }
+            catch (SystemException ex)
+            {
+                throw new Exceptions(ex.Message);
+            }
+            return searchEmp;
+        }
+        //Method to Update
+        public bool Update(Entities update)
+        {
+            bool EmpUpdated = false;
+            try
+            {
+                for (int i = 0; i < EmpList.Count; i++)
+                {
+                    if (EmpList[i].EmpID == update.EmpID)
+                    {
+                        update.EmpName = EmpList[i].EmpName;
+                        update.EmpAddress = EmpList[i].EmpAddress;
+                        update.EmpCity = EmpList[i].EmpCity;
+                        update.EmpDepartment = EmpList[i].EmpDepartment;
+                        update.EmpSalary = EmpList[i].EmpSalary;
+                        update.EmpNum = EmpList[i].EmpNum;
+                        update.EmpEMail = EmpList[i].EmpEMail;
+                        EmpUpdated = true;
+                    }
+                }
+            }
+            catch (SystemException ex)
+            {
+                throw new Exceptions(ex.Message);
+            }
+            return EmpUpdated;
+        }
+        //Method to Delete
+        public bool Delete(int id)
+        {
+            bool EmpDeleted = false;
+            try
+            {
+                Entities deleteGuest = EmpList.Find(emp => emp.EmpID == id);
+
+                if (deleteGuest != null)
+                {
+                    EmpList.Remove(deleteGuest);
+                    EmpDeleted = true;
+                }
+            }
+            catch (SystemException ex)
+            {
+                throw new Exceptions(ex.Message);
+            }
+            return EmpDeleted;
+
+        }
+    }
+}
+
+=================================================================================================
+
+BL.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Employee_Entities;
+using Employee_Exceptions;
+using Data_Access_Layer;
+using System.Text.RegularExpressions;
+
+namespace Bussiness_Layer
+{
+    public class BL
+    {
+        DAL dal = new DAL();
+        private static bool ValidateEmp(Entities emp)
+        {
+            StringBuilder sb = new StringBuilder();
+            bool validEmp = true;
+            if (emp.EmpID <= 0)
+            {
+                validEmp = false;
+                sb.Append(Environment.NewLine + "Invalid Employee ID");
+            }
+            //Regular Expression to check Name
+            Regex regex = new Regex("^[a-zA-Z]+$");
+            if (!regex.IsMatch(emp.EmpName) || emp.EmpName == String.Empty)
+            {
+                validEmp = false;
+                throw new Exceptions(emp.EmpName, 1);
+            }
+            if (emp.EmpAddress == string.Empty)
+            {
+                validEmp = false;
+                sb.Append(Environment.NewLine + "Employee Address Required");
+            }
+            //Regular Expression to check City Names
+            if (!regex.IsMatch(emp.EmpCity) || emp.EmpCity == String.Empty)
+            {
+                validEmp = false;
+                throw new Exceptions(emp.EmpCity, 1);
+            }
+            if (!regex.IsMatch(emp.EmpDepartment) && emp.EmpDepartment == String.Empty)
+            {
+                validEmp = false;
+                throw new Exceptions(emp.EmpDepartment, 1);
+            }
+            if (emp.EmpSalary < 24000)
+            {
+                validEmp = false;
+                sb.Append(Environment.NewLine + "Enter Correct Salary");
+            }
+            if (emp.EmpNum.ToString().Length < 10 || emp.EmpNum.ToString().Length >10)
+            {
+                validEmp = false;
+                sb.Append(Environment.NewLine + "Enter Correct Number");
+            }
+            if (emp.EmpEMail == string.Empty)
+            {
+                validEmp = false;
+                sb.Append(Environment.NewLine + "Employee Email ID Required");
+            }
+            if (validEmp == false)
+                throw new Exceptions(sb.ToString());
+            return validEmp;
+        }
+
+        public bool Add(Entities newEmp)
+        {
+            bool EmpAdded = false;
+            try
+            {
+                if (ValidateEmp(newEmp))
+                {
+                    //DAL dal = new DAL();
+                    EmpAdded = dal.Add(newEmp);
+                }
+            }
+            catch (Exceptions)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+            return EmpAdded;
+        }
+
+        public List<Entities> GetAll()
+        {
+            List<Entities> EmpList = null;
+            try
+            {
+                //DAL dal = new DAL();
+                EmpList = dal.GetAll();
+            }
+            catch (Exceptions ex)
+            {
+                throw ex;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return EmpList;
+        }
+
+        public Entities Search(int id)
+        {
+            Entities searchEmp = null;
+            try
+            {
+                //DAL dal = new DAL();
+                searchEmp = dal.Search(id);
+            }
+            catch (Exceptions ex)
+            {
+                throw ex;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return searchEmp;
+
+        }
+
+        public bool Update(Entities emp)
+        {
+            bool EmpUpdated = false;
+            try
+            {
+                if (ValidateEmp(emp))
+                {
+                    //DAL dal = new DAL();
+                    EmpUpdated = dal.Update(emp);
+                }
+            }
+            catch (Exceptions)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+            return EmpUpdated;
+        }
+
+        public bool Delete(int id)
+        {
+            bool EmpDeleted = false;
+            try
+            {
+                if (id > 0)
+                {
+                    //DAL dal = new DAL();
+                    EmpDeleted = dal.Delete(id);
+                }
+                else
+                {
+                    throw new Exceptions("Invalid Employee ID");
+                }
+            }
+            catch (Exceptions)
+            {
+                Emp
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+            return EmpDeleted;
+        }
+    }
+}
+
+======================================================================================================
+
+EmpPortal.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+using Employee_Exceptions;
+using Bussiness_Layer;
+using Employee_Entities;
+
+namespace Employee_Management_Portal
+{
+    class EmpPortal
+    {
+        BL BL = new BL();
+        //Globally creating Instance
+        private static void PrintMenu()
+        {
+            Console.WriteLine("\n###################Guest PhoneBook Menu###################");
+            Console.WriteLine("1. Add Employee");
+            Console.WriteLine("2. List All Employees");
+            Console.WriteLine("3. Search Employee by ID");
+            Console.WriteLine("4. Update Employee by ID");
+            Console.WriteLine("5. Delete Employee by ID");
+            Console.WriteLine("6. Exit");
+            Console.WriteLine("##########################################################\n");
+        }
+        //Method to Add Employee Details
+        private void Add()
+        {
+            try
+            {
+                Entities E = new Entities();
+                Console.Write("Enter Employee ID :");
+                E.EmpID = Convert.ToInt32(Console.ReadLine());
+                Console.Write("Enter Employee Name :");
+                E.EmpName = Console.ReadLine();
+                Console.Write("Enter Employee Address :");
+                E.EmpAddress = Console.ReadLine();
+                Console.Write("Enter Employee City :");
+                E.EmpCity = Console.ReadLine();
+                Console.Write("Enter Employee Department :");
+                E.EmpDepartment = Console.ReadLine();
+                Console.Write("Enter Employee Salary :");
+                E.EmpSalary = Convert.ToInt32(Console.ReadLine());
+                Console.Write("Enter Employee Number :");
+                E.EmpNum = long.Parse((Console.ReadLine()));
+                Console.Write("Enter Employee Email ID :");
+                E.EmpEMail = Console.ReadLine();
+                bool EmpAdded = BL.Add(E);
+                if (EmpAdded)
+                    Console.WriteLine("Employee Added");
+                else
+                    Console.WriteLine("Employee not Added");
+            }
+            catch (Exceptions ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+        //Method to List All Details
+        private void ListAll()
+        {
+            try
+            {
+                List<Entities> EmpList = BL.GetAll();
+                if (EmpList != null)
+                {
+                    Console.WriteLine("#####################################################################");
+                    Console.WriteLine("EmpID\tName\t\t\tAddress\t\tCity\tDepartment\tSalary\tNumber\tEMailID");
+                    Console.WriteLine("#####################################################################");
+                    foreach (Entities emp in EmpList)
+                    {
+                        Console.WriteLine("{0}\t{1}\t\t{2}\t\t{3}\t{4}\t{5}\t{6}\t{7}", emp.EmpID, emp.EmpName, emp.EmpAddress, emp.EmpCity, emp.EmpDepartment, emp.EmpSalary,emp.EmpNum,emp.EmpEMail);
+                    }
+                    Console.WriteLine("######################################################################");
+
+                }
+                else
+                {
+                    Console.WriteLine("No Employee Details Available");
+                }
+            }
+            catch (Exceptions ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+        //Method to Search 
+        private void Search()
+        {
+            try
+            {
+                int id;
+                Console.WriteLine("Enter EmployeeID to Search:");
+                id = Convert.ToInt32(Console.ReadLine());
+                Entities search = BL.Search(id);
+                if (search != null)
+                {
+                    Console.WriteLine("####################################################################################");
+                    Console.WriteLine("EmployeeID\tName\t\t\tAddress\t\tCity\tDepartment\tSalary\tNumber\tEMailID");
+                    Console.WriteLine("####################################################################################");
+                    Console.WriteLine("{0}\t{1}\t\t{2}\t\t{3}\t{4}\t{5}\t{6}\t{7}", search.EmpID, search.EmpName, search.EmpAddress, search.EmpCity, search.EmpDepartment, search.EmpSalary,search.EmpNum,search.EmpEMail);
+                    Console.WriteLine("####################################################################################");
+                }
+                else
+                {
+                    Console.WriteLine("No Employee Details Available");
+                }
+
+            }
+            catch (Exceptions ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+        //Method to Update
+        private void Update()
+        {
+            try
+            {
+                int id;
+                Console.WriteLine("Enter Employee ID to Update Details:");
+                id = Convert.ToInt32(Console.ReadLine());
+                Entities updatedEmp = BL.Search(id);
+                if (updatedEmp != null)
+                {
+                    //Adding one more user input field
+                    Console.WriteLine("Enter Which Field to be updated");
+                    Console.WriteLine("1.Name\t2.Address\t3.City\t4.Department\t5.Salary\t6.Number\t7.EMailID");
+                    int c = int.Parse(Console.ReadLine());
+                    switch (c)
+                    {
+                        case 1:
+                            Console.WriteLine("Update Employee Name :");
+                            updatedEmp.EmpName = Console.ReadLine();
+                            break;
+                        case 2:
+                            Console.WriteLine("Update Address :");
+                            updatedEmp.EmpAddress = Console.ReadLine();
+                            break;
+                        case 3:
+                            Console.WriteLine("Update City :");
+                            updatedEmp.EmpCity = Console.ReadLine();
+                            break;
+                        case 4:
+                            Console.WriteLine("Update Department :");
+                            updatedEmp.EmpDepartment = Console.ReadLine();
+                            break;
+                        case 5:
+                            Console.WriteLine("Update Salary :");
+                            updatedEmp.EmpSalary = Convert.ToInt32(Console.ReadLine());
+                            break;
+                        case 6:
+                            Console.WriteLine("Update Number :");
+                            updatedEmp.EmpNum = long.Parse(Console.ReadLine());
+                            break;
+                        case 7:
+                            Console.WriteLine("Update Email ID :");
+                            updatedEmp.EmpEMail = Console.ReadLine();
+                            break;
+                        default:
+                            Console.WriteLine("Invalid Choice");
+                            break;
+                    }
+                    bool EmpUpdated = BL.Update(updatedEmp);
+                    if (EmpUpdated)
+                        Console.WriteLine("Employee Details Updated");
+                    else
+                        Console.WriteLine("Employee Details not Updated ");
+                }
+                else
+                {
+                    Console.WriteLine("No Employee Details Available");
+                }
+            }
+            catch (Exceptions ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+        // Method to Delete
+        private void Delete()
+        {
+            try
+            {
+                int id;
+                Console.WriteLine("Enter Employee ID to Delete:");
+                id = Convert.ToInt32(Console.ReadLine());
+                Entities deleteEmp = BL.Search(id);
+                if (deleteEmp != null)
+                {
+                    bool Empdeleted = BL.Delete(id);
+                    if (Empdeleted)
+                        Console.WriteLine("Employee Deleted");
+                    else
+                        Console.WriteLine("Employee not Deleted ");
+                }
+                else
+                {
+                    Console.WriteLine("No Employee Details Available");
+                }
+            }
+            catch (Exceptions ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        //Main Method
+        static void Main(string[] args)
+        {
+            EmpPortal emp = new EmpPortal();
+            int choice;
+            do
+            {
+                Console.Clear();
+                PrintMenu();
+                Console.Write("Enter your Choice:");
+                choice = Convert.ToInt32(Console.ReadLine());
+                switch (choice)
+                {
+                    case 1:
+                        emp.Add();
+                        Console.ReadKey();
+                        break;
+                    case 2:
+                        emp.ListAll();
+                        Console.ReadKey();
+                        break;
+                    case 3:
+                        emp.Search();
+                        Console.ReadKey();
+                        break;
+                    case 4:
+                        emp.Update();
+                        Console.ReadKey();
+                        break;
+                    case 5:
+                        emp.Delete();
+                        Console.ReadKey();
+                        break;
+                    case 6:
+                        return;
+                    default:
+                        Console.WriteLine("Invalid Choice");
+                        break;
+                }
+            } while (choice != -1);
+        }
+        
+    }
+}

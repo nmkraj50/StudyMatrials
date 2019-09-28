@@ -1,0 +1,598 @@
+RouteDetails.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Route.Entity
+{
+    [Serializable]
+    //For Serialization it is a Required Attribute
+    public class RouteDetails
+    {
+        //Adding Properties
+        public int RouteId { get; set; }//Route ID
+        public string RouteFrom { get; set; }//Source
+        public string RouteTo { get; set; }//Destination
+        public string BusNo { get; set; }//Bus Number
+        public string BusType { get; set; }//Bus Type
+        public int Capacity { get; set; }//Bus Capacity
+        public int Fare { get; set; }//Fare
+    }
+}
+
+=====================================================================================================
+
+RouteExceptions.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Route.Exceptions
+{
+    //We are handling the Exceptions here
+    public class RouteExceptions:ApplicationException//deriving Application Exception Class here
+    {
+        //All Exceptions Added.
+        public RouteExceptions():base()
+        {
+
+        }
+        public RouteExceptions(string message):base (message)
+        {
+
+        }
+        //public RouteExceptions(string message,Exception innerException):base(message,innerException)
+        //{
+
+        //}
+    }
+}
+
+======================================================================================================
+
+RouteDAL.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Route.Entity;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
+using Route.Exceptions;
+
+namespace Route.DataAccessLayer
+{
+    public class RouteDAL
+    {
+        public static List <RouteDetails> RouteDetail = new List<RouteDetails>();//Creating the list to store the collection
+        public bool AddNewRoute(RouteDetails newRoute) //Adding Route Details
+        {
+            bool routeAdded = false;
+            try
+            {
+                RouteDetail.Add(newRoute);
+                routeAdded = true;
+            
+            }
+            catch (RouteExceptions ex)
+            {
+                throw new RouteExceptions(ex.Message);
+            }
+            return routeAdded;
+        }
+
+
+        public bool UpdateRouteDAL(RouteDetails updateRoute)//Updation of Route
+        {
+            bool routeUpdated = false;
+            try
+            {
+                for(int i=0;i<RouteDetail.Count;i++)
+                {
+                    if(RouteDetail[i].RouteId == updateRoute.RouteId)//Comparing and updating
+                    {
+                        RouteDetail[i].RouteFrom = updateRoute.RouteFrom;
+                        RouteDetail[i].RouteTo = updateRoute.RouteTo;
+                        RouteDetail[i].BusNo = updateRoute.BusNo;
+                        RouteDetail[i].BusType = updateRoute.BusType;
+                        RouteDetail[i].Capacity = updateRoute.Capacity;
+                        RouteDetail[i].Fare = updateRoute.Fare;
+                        routeUpdated = true;
+                        return routeUpdated;
+                    }
+                }
+            }
+            catch (RouteExceptions ex)
+            {
+                throw new RouteExceptions(ex.Message);
+            }
+            return routeUpdated;
+        }
+
+
+        public bool DeleteRouteDAL(int deleteRouteId)//Deletion of Route
+        {
+            bool routeDeleted = false;
+            try
+            {
+                RouteDetails deleteDetails = RouteDetail.Find(details => details.RouteId == deleteRouteId);//Finding Route by using Anonymous Function
+                RouteDetail.Remove(deleteDetails);
+                routeDeleted = true;
+                return routeDeleted;
+            }
+            catch (RouteExceptions ex)
+            {
+                throw new RouteExceptions(ex.Message);
+            }
+        }
+
+
+        public RouteDetails SearchRouteDAL(int searchRouteId)//Route Searching
+        {
+            RouteDetails searchId = null;
+            try
+            {
+                searchId = RouteDetail.Find(details => details.RouteId == searchRouteId);//Finding Route by using Anonymous Function
+                return searchId;
+            }
+            catch (RouteExceptions ex)
+            {
+                throw new RouteExceptions(ex.Message);
+            }
+        }
+
+        public bool SerializationDAL()//Binary Serialization
+        {
+            bool serializationGuest = false;
+            try
+            {
+                FileStream stream = new FileStream("lab14.bat", FileMode.Create, FileAccess.Write);
+                BinaryFormatter binary = new BinaryFormatter();
+                binary.Serialize(stream, RouteDetail);
+                stream.Close();
+                serializationGuest = true;
+            }
+            catch (RouteExceptions e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            return serializationGuest;
+        }
+
+        public List<RouteDetails> DeserializationDAL()//Binary Deserialization
+        {
+
+            FileStream stream = new FileStream("lab14.bat", FileMode.Open, FileAccess.Read);
+            BinaryFormatter binary = new BinaryFormatter();
+            List<RouteDetails> objguest = binary.Deserialize(stream) as List<RouteDetails>;
+            stream.Close();
+            return objguest;
+
+        }
+    }
+}
+
+==================================================================================================
+
+RouteBL.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Route.DataAccessLayer;
+using Route.Entity;
+using Route.Exceptions;
+using System.Text.RegularExpressions;
+
+namespace Route.BusinessLayer
+{
+    public class RouteBL
+    {
+        private static bool ValidateRoute(RouteDetails route)//Validation Begins
+        {
+            try
+            {
+                StringBuilder sb = new StringBuilder();
+                bool validRoute = true;
+                //Checking for Empty Parameter
+                if ((route.RouteFrom == string.Empty) || (route.RouteTo == string.Empty) || (route.BusNo == string.Empty) || (route.BusType == string.Empty) || (Convert.ToString(route.Capacity).Length == 0) || (Convert.ToString(route.Fare).Length == 0) || (Convert.ToString(route.RouteId).Length == 0))
+                {
+                    validRoute = false;
+                    sb.Append(Environment.NewLine + "No Field Should be left Blank");
+                }
+                //Checking Route ID length must be greater than or equal to 2 and less than or equal to 3
+                if ((Convert.ToString(route.RouteId).Length < 2) || (Convert.ToString(route.RouteId).Length > 3))
+                {
+                    validRoute = false;
+                    sb.Append(Environment.NewLine + "Route Id must be 2 to 3 digit Long");
+                }
+                //Regex Matching for Bus Number Entry
+                if (!Regex.IsMatch(route.BusNo, @"^[a-zA-Z][a-zA-Z][-][0-9][0-9][-][a-zA-z][a-zA-Z][-][0-9][0-9][0-9][0-9]"))
+                {
+                    validRoute = false;
+                    sb.Append(Environment.NewLine + "Please Enter Bus Number in given Format");
+                }
+                //Checking Ac or Non Ac Bus Type
+                if (!((route.BusType == "AC") || (route.BusType == "Non-AC")))
+                {
+                    validRoute = false;
+                    sb.Append(Environment.NewLine + "Please Enter BusType in given Format Only");
+                }
+                string routeCapacityCheck = Convert.ToString(route.Capacity);
+                string routeFareCheck = Convert.ToString(route.Fare);
+                //Checking that Capacity and fare are Digits Only
+                if (!((Regex.IsMatch(routeCapacityCheck, @"[0-9]") && Regex.IsMatch(routeFareCheck, @"[0-9]"))))
+                {
+                    validRoute = false;
+                    sb.Append(Environment.NewLine + "Please Enter Capacity and Fare in Digits Only");
+                }
+
+                if (validRoute == false)
+                {
+                    throw new RankException(sb.ToString());
+                }
+
+                return validRoute;
+            }
+            catch(RouteExceptions ex)
+            {
+                throw new RouteExceptions(ex.Message);
+            }
+
+        }
+
+
+        public static bool AddRouteBL(RouteDetails addRoute)//Adding Route in Business Layer Logic
+        {
+            bool routeAdded = false;
+            try
+            {
+                if (ValidateRoute(addRoute))
+                {
+                    RouteDAL routeDAL = new RouteDAL();
+                    routeAdded = routeDAL.AddNewRoute(addRoute);
+                    return routeAdded;
+                }
+            }
+            catch (RouteExceptions ex)
+            {
+                throw new RouteExceptions(ex.Message);
+            }
+            return routeAdded;
+        }
+
+        public static bool UpdateRouteBL(RouteDetails updateRoute)//Adding Route in Business Layer Logic
+        {
+            bool routeUpdated = false;
+            try
+            {
+                if (ValidateRoute(updateRoute))
+                {
+                    RouteDAL routeDAL = new RouteDAL();
+                    routeUpdated = routeDAL.UpdateRouteDAL(updateRoute);
+                    return routeUpdated;
+                }
+            }
+            catch (RouteExceptions ex)
+            {
+                throw ex;
+            }
+            return routeUpdated;
+        }
+
+        public static bool DeleteRouteBL(int RouteId)//Deletion of  Route in Business Layer Logic
+        {
+            bool routeDeleted = false;
+            try
+            {
+                if (RouteId > 0)
+                {
+                    RouteDAL routeDAL = new RouteDAL();
+                    routeDeleted = routeDAL.DeleteRouteDAL(RouteId);
+                }
+                else
+                {
+                    throw new RouteExceptions("Route Id must be greater tha 0");
+                }
+            }
+            catch (RouteExceptions ex)
+
+            {
+                throw ex;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return routeDeleted;
+        }
+
+        public static RouteDetails SearchRouteBL(int RouteId)//Searching of  Route in Business Layer Logic
+        {
+            RouteDetails route = null;
+            try
+            {
+                if (RouteId > 0)
+                {
+                    RouteDAL routeDAL = new RouteDAL();
+                    route = routeDAL.SearchRouteDAL(RouteId);
+                }
+                else
+                {
+                    throw new RouteExceptions("Route Id must be greater than 0");
+                }
+            }
+            catch (RouteExceptions ex)
+            {
+
+                throw ex;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return route;
+        }
+
+
+        public static bool SerializationBL()//Serialization in Business Layer Logic
+        {
+            bool serial = false;
+            RouteDAL routeDAL = new RouteDAL();
+            serial = routeDAL.SerializationDAL();
+            return serial;
+        }
+        public static List<RouteDetails> DeserializationBL()//Deserialization in Business Layer Logic
+        {
+            RouteDAL objDAL = new RouteDAL();
+            List<RouteDetails> deserial = objDAL.DeserializationDAL();
+            return deserial;
+        }
+    }
+
+}
+
+====================================================================================================
+
+RoutePL.cs
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Route.Entity;
+using Route.Exceptions;
+using Route.BusinessLayer;
+
+namespace Route.PresentationLayer//Presentation Layer
+{
+    class RoutePL
+    {
+
+        private static void PrintMenu()//PrintMenu
+        {
+            Console.WriteLine("\n------------------PMPML Route Details-----------------");
+            Console.WriteLine("1. Add Route");//Serialization is always called here
+            Console.WriteLine("2. Search Route by ID");
+            Console.WriteLine("3. Update Route");
+            Console.WriteLine("4. Delete Route");
+            Console.WriteLine("5. Exit");
+           // Console.WriteLine("6. Exit");
+            Console.WriteLine("6. Deserialize");
+            Console.WriteLine("---------------------------------------------------------\n");
+
+        }
+
+        private static void AddRoute()//Add Route by taking input from user
+        {
+            try
+            {
+                RouteDetails newRoute = new RouteDetails();
+                Console.WriteLine("Enter RouteID :");
+                newRoute.RouteId = Convert.ToInt32(Console.ReadLine());
+                Console.WriteLine("Enter Route From :");
+                newRoute.RouteFrom =Console.ReadLine();
+                Console.WriteLine("Enter Route To :");
+                newRoute.RouteTo = Console.ReadLine();
+                Console.WriteLine("Enter Bus Number :");
+                newRoute.BusNo = Console.ReadLine();
+                Console.WriteLine("Enter Bus Type AC or Non-AC only :");
+                newRoute.BusType = Console.ReadLine();
+                Console.WriteLine("Enter Bus Capacity :");
+                newRoute.Capacity = Convert.ToInt32(Console.ReadLine());
+                Console.WriteLine("Enter Bus Fare :");
+                newRoute.Fare = Convert.ToInt32(Console.ReadLine());
+                bool routeAdded = RouteBL.AddRouteBL(newRoute);
+                if (routeAdded)
+                {
+                    Console.WriteLine("Route Added");
+                    Serialization();//Serialization is Always called here
+                }
+                else
+                    Console.WriteLine("Route not Added");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+          
+        }
+
+        private static void DeleteRoute()//Delete Route by taking input from user
+        {
+            try
+            {
+                int deleteRouteID;
+                Console.WriteLine("Enter Route ID to Delete:");
+                deleteRouteID = Convert.ToInt32(Console.ReadLine());
+                RouteDetails deleteRoute = RouteBL.SearchRouteBL(deleteRouteID);
+                if (deleteRoute != null)
+                {
+                    bool guestdeleted = RouteBL.DeleteRouteBL(deleteRouteID);
+                    if (guestdeleted)
+                        Console.WriteLine("Route Deleted");
+                    else
+                        Console.WriteLine("Route not Deleted ");
+                }
+                else
+                {
+                    Console.WriteLine("No Route Details Available");
+                }
+
+
+            }
+            catch (RouteExceptions ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        private static void UpdateRoute()//Update Route by taking input from user
+        {
+            try
+            {
+                int updateRouteID;
+                Console.WriteLine("Enter Route ID to Update Details:");
+                updateRouteID = Convert.ToInt32(Console.ReadLine());
+                RouteDetails updatedRoute = RouteBL.SearchRouteBL(updateRouteID);
+                if (updatedRoute != null)
+                {
+                    Console.WriteLine("Enter Route From :");
+                    updatedRoute.RouteFrom = Console.ReadLine();
+                    Console.WriteLine("Enter Route To :");
+                    updatedRoute.RouteTo = Console.ReadLine();
+                    Console.WriteLine("Enter Bus Number :");
+                    updatedRoute.BusNo = Console.ReadLine();
+                    Console.WriteLine("Enter Bus Type AC or Non-AC only :");
+                    updatedRoute.BusType = Console.ReadLine();
+                    Console.WriteLine("Enter Bus Capacity :");
+                    updatedRoute.Capacity = Convert.ToInt32(Console.ReadLine());
+                    Console.WriteLine("Enter Bus Fare :");
+                    updatedRoute.Fare = Convert.ToInt32(Console.ReadLine());
+
+
+
+                    bool routeUpdated = RouteBL.UpdateRouteBL(updatedRoute);
+                    if (routeUpdated)
+                        Console.WriteLine("Route Details Updated");
+                    else
+                        Console.WriteLine("Route Details not Updated ");
+                }
+                else
+                {
+                    Console.WriteLine("No Route Details Available");
+                }
+
+
+            }
+            catch (RouteExceptions ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        private static void SearchRouteByID()//Search Route by taking input from user
+        {
+            try
+            {
+                int searchRouteID;
+                Console.WriteLine("Enter Route ID to Search:");
+                searchRouteID = Convert.ToInt32(Console.ReadLine());
+                RouteDetails searchRoute = RouteBL.SearchRouteBL(searchRouteID);
+                if (searchRoute != null)
+                {
+                    Console.WriteLine("******************************************************************************");
+                    Console.WriteLine("RouteID : {0} \n Route From : {1} \n Route To : {2}\n Bus Number : {3} \n Bus Type : {4} \n Capacity {5} \n Fare {6}\n",searchRoute.RouteId,searchRoute.RouteFrom,searchRoute.RouteTo,searchRoute.BusNo,searchRoute.BusType,searchRoute.Capacity,searchRoute.Fare);
+
+                }
+                else
+                {
+                    Console.WriteLine("No Route Details Available");
+                }
+
+            }
+            catch (RouteExceptions ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        private static void Serialization()//Serialization
+        {
+            bool route = RouteBL.SerializationBL();
+            if (route == true)
+            {
+                Console.WriteLine("\n---------Binary Serialization Done----------------\n");
+            }
+            else
+            {
+                Console.WriteLine("\n---------Binary Serialization Failed----------------\n");
+            }
+        }
+
+        private static void Deserialization()//Deserialization
+        {
+            try
+            {
+                List<RouteDetails> objroutelist = RouteBL.DeserializationBL();
+                objroutelist.ForEach(item => Console.WriteLine("RouteID : {0} \n Route From : {1} \n Route To : {2}\n Bus Number : {3} \n Bus Type : {4} \n Capacity {5} \n Fare {6}\n", item.RouteId, item.RouteFrom, item.RouteTo, item.BusNo, item.BusType, item.Capacity, item.Fare));
+
+            }
+            catch (RouteExceptions e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
+
+
+
+
+        static void Main(string[] args)//Main Begins
+        {
+            int choice;
+            do
+            {
+                PrintMenu();
+                Console.WriteLine("Enter your Choice:");
+                choice = Convert.ToInt32(Console.ReadLine());
+                switch (choice)
+                {
+                    case 1:
+                        AddRoute();
+                        break;
+                    case 2:
+                        SearchRouteByID();
+                        break;
+                    case 3:
+                        UpdateRoute();
+                        break;
+                    case 4:
+                        DeleteRoute();
+                        break;
+                    case 5:
+                        Environment.Exit(0);
+                        break;
+                    case 6:
+                        Deserialization();
+                        break;
+                    default:
+                        Console.WriteLine("Invalid Choice");
+                        break;
+                }
+            } while (choice != -1);
+        }
+
+
+    }
+}
